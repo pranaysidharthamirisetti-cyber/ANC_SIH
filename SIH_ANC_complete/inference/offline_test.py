@@ -25,20 +25,29 @@ def main():
 
     x=load_audio(a.input,SAMPLE_RATE)
     X=stft(torch.from_numpy(x),N_FFT,HOP_LENGTH,WIN_LENGTH)
+    n_fft, hop_length, win_length = N_FFT, HOP_LENGTH, WIN_LENGTH
 
     if a.baseline or not Path(a.checkpoint).exists():
         Y=baseline(X)
         print("Using classical spectral baseline.")
     else:
         ckpt=torch.load(a.checkpoint,map_location="cpu")
-        model=SpeechEnhancer(ckpt.get("hidden",HIDDEN))
+        n_fft = ckpt.get("n_fft", N_FFT)
+        hop_length = ckpt.get("hop_length", HOP_LENGTH)
+        win_length = ckpt.get("win_length", WIN_LENGTH)
+        if (n_fft, hop_length, win_length) != (N_FFT, HOP_LENGTH, WIN_LENGTH):
+            X=stft(torch.from_numpy(x),n_fft,hop_length,win_length)
+        model=SpeechEnhancer(
+            ckpt.get("hidden", HIDDEN),
+            freq_bins=ckpt.get("freq_bins", n_fft // 2 + 1),
+        )
         model.load_state_dict(ckpt["model_state"])
         model.eval()
         with torch.no_grad():
             Y,_=model(X.unsqueeze(0))
         Y=Y.squeeze(0)
 
-    y=istft(Y,len(x),N_FFT,HOP_LENGTH,WIN_LENGTH).numpy()
+    y=istft(Y,len(x),n_fft,hop_length,win_length).numpy()
 
     if a.reference:
         ref=load_audio(a.reference,SAMPLE_RATE)

@@ -1,41 +1,71 @@
-# SIH ANC Complete Starter Codebase
+# SIH ANC AI Noise Cancellation
 
 Pipeline:
 Primary mic -> STFT -> lightweight complex-domain CRN -> iSTFT
-Reference mic -> LMS/NLMS residual cancellation -> headset
+Reference mic -> LMS/NLMS/RLS residual cancellation -> headset
 
-The neural model architecture is included, but its weights are untrained.
-Train it on your clean-speech + defence-noise dataset to create
-checkpoints/best.pt.
+The CRN is the trainable AI component. Its weights are untrained until you
+run the training workflow on clean speech and defence/environment noise.
 
 ## Setup
+
+```powershell
 python -m venv .venv
-Windows: .venv\\Scripts\\activate
-Linux/Raspberry Pi: source .venv/bin/activate
+.venv\Scripts\activate
 pip install -r requirements.txt
+```
 
 ## Dataset
-Put clean WAV speech into data/clean_speech/
-Put defence/environment noise WAV files into data/defence_noise/
 
-Then:
+Put clean WAV speech into `data/clean_speech/` and defence/environment noise
+WAV files into `data/defence_noise/`.
+
+```powershell
 python -m data.generate_dataset
+```
 
-Train:
+## Train
+
+```powershell
 python training/train.py
+```
 
-Offline inference:
+This creates `checkpoints/best.pt`.
+
+## Offline inference
+
+Use the trained model:
+
+```powershell
 python inference/offline_test.py --input input/noisy.wav --output output/enhanced.wav --checkpoint checkpoints/best.pt
+```
 
-Baseline without trained AI:
+Run the classical spectral baseline without a trained checkpoint:
+
+```powershell
 python inference/offline_test.py --input input/noisy.wav --output output/enhanced.wav --baseline
+```
 
-Export the neural mask network:
+Evaluate noisy, classical spectral, and trained-model output:
+
+```powershell
+python evaluation/evaluate.py --checkpoint checkpoints/best.pt --output-dir output/test
+```
+
+The optional reference microphone can be passed to `offline_test.py` with
+`--reference`. The default NLMS canceller can be replaced by the LMS or RLS
+implementations in `adaptive_filter/`.
+
+## Deployment
+
+Export the neural mask network after training:
+
+```powershell
 python deployment/export_onnx.py
+```
 
-Default audio:
-16 kHz, 512-point FFT, 512 window, 128 hop.
+The real-time module is a hardware integration skeleton. Measure end-to-end
+latency on the target audio interface before claiming real-time performance.
 
-Real-time audio is hardware/interface dependent. The included realtime.py is a
-safe integration skeleton; do not claim real-time performance until actual
-audio latency is measured on the target hardware.
+Default audio configuration: 16 kHz sample rate, 512-point FFT, 512-sample
+window, and 128-sample hop.
