@@ -25,6 +25,12 @@ class SpeechEnhancer(nn.Module):
 
     def forward(self, X):
         # X: (B, F, T) complex STFT of the noisy signal
+        if not torch.is_complex(X) or X.ndim != 3:
+            raise ValueError("SpeechEnhancer expects a complex STFT shaped (batch, frequency, time)")
+        if X.shape[1] != self.net.freq_bins:
+            raise ValueError(
+                f"Expected {self.net.freq_bins} frequency bins, got {X.shape[1]}"
+            )
         inp = torch.stack([X.real, X.imag], dim=1)  # (B, 2, F, T)
         mask = self.net(inp)
         Y = apply_complex_mask(X, mask)

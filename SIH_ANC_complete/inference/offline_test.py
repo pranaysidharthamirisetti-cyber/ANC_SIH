@@ -24,10 +24,10 @@ def main():
     a=p.parse_args()
 
     x=load_audio(a.input,SAMPLE_RATE)
-    X=stft(torch.from_numpy(x),N_FFT,HOP_LENGTH,WIN_LENGTH)
     n_fft, hop_length, win_length = N_FFT, HOP_LENGTH, WIN_LENGTH
 
     if a.baseline or not Path(a.checkpoint).exists():
+        X=stft(torch.from_numpy(x),n_fft,hop_length,win_length)
         Y=baseline(X)
         print("Using classical spectral baseline.")
     else:
@@ -35,8 +35,7 @@ def main():
         n_fft = ckpt.get("n_fft", N_FFT)
         hop_length = ckpt.get("hop_length", HOP_LENGTH)
         win_length = ckpt.get("win_length", WIN_LENGTH)
-        if (n_fft, hop_length, win_length) != (N_FFT, HOP_LENGTH, WIN_LENGTH):
-            X=stft(torch.from_numpy(x),n_fft,hop_length,win_length)
+        X=stft(torch.from_numpy(x),n_fft,hop_length,win_length)
         model=SpeechEnhancer(
             ckpt.get("hidden", HIDDEN),
             freq_bins=ckpt.get("freq_bins", n_fft // 2 + 1),

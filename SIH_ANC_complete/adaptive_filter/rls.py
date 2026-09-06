@@ -19,13 +19,17 @@ class RLSFilter:
 
     def process(self, primary, reference):
         """Return the primary signal after cancelling correlated reference noise."""
-        L = min(len(primary), len(reference))
+        primary = np.asarray(primary, dtype=np.float32)
+        reference = np.asarray(reference, dtype=np.float32)
+        if primary.ndim != 1 or reference.ndim != 1:
+            raise ValueError("primary and reference must be one-dimensional")
+        L = len(primary)
         out = np.zeros(L, dtype=np.float32)
         lam = self.forgetting_factor
 
         for n in range(L):
             self.x[1:] = self.x[:-1]
-            self.x[0] = reference[n]
+            self.x[0] = reference[n] if n < len(reference) else 0.0
             px = self.inverse_correlation @ self.x
             gain = px / (lam + np.dot(self.x, px))
             estimate = np.dot(self.w, self.x)

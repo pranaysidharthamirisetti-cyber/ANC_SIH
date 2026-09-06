@@ -4,14 +4,16 @@ from models.crn import ComplexCRN
 
 def main():
     ckpt=torch.load(CHECKPOINT_PATH,map_location="cpu")
-    model=ComplexCRN(ckpt.get("hidden",HIDDEN))
+    n_fft = ckpt.get("n_fft", N_FFT)
+    freq_bins = ckpt.get("freq_bins", n_fft // 2 + 1)
+    model=ComplexCRN(ckpt.get("hidden",HIDDEN), freq_bins=freq_bins)
     state=ckpt["model_state"]
     # Extract the CRN weights from SpeechEnhancer.net
     state={k.replace("net.","",1):v for k,v in state.items() if k.startswith("net.")}
     model.load_state_dict(state)
     model.eval()
 
-    dummy=torch.randn(1,2,N_FFT//2+1,126)
+    dummy=torch.randn(1,2,freq_bins,126)
     out=ROOT/"deployment"/"crn_mask.onnx"
     torch.onnx.export(
         model,dummy,out,opset_version=17,
