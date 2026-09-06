@@ -51,7 +51,8 @@ def main():
                 "sample_rate": SAMPLE_RATE,
                 "n_fft": N_FFT,
                 "hop_length": HOP_LENGTH,
-                "win_length": WIN_LENGTH
+                "win_length": WIN_LENGTH,
+                "freq_bins": N_FFT // 2 + 1,
             }, CHECKPOINT_PATH)
             print("Saved:", CHECKPOINT_PATH)
 
