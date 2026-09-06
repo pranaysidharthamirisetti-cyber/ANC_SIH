@@ -14,6 +14,8 @@ def rms(x):
     return float(np.sqrt(np.mean(x*x) + 1e-12))
 
 def mix_at_snr(clean, noise, snr_db):
+    if len(clean) == 0 or len(noise) == 0:
+        raise ValueError("clean and noise signals must not be empty")
     if len(noise) < len(clean):
         noise = np.tile(noise, int(np.ceil(len(clean)/len(noise))))
     start = random.randint(0, max(0, len(noise)-len(clean)))
@@ -49,15 +51,16 @@ def main():
             else:
                 clean = clean[:max_len]
 
+            # Keep short source clips usable instead of silently dropping them.
             if len(clean) < SAMPLE_RATE:
-                continue
+                clean = np.pad(clean, (0, SAMPLE_RATE - len(clean)))
 
             noisy = mix_at_snr(clean, noise, random.choice(SNR_DB))
             name = f"{split}_{i:05d}.wav"
             save_audio(noisy_dir / name, noisy, SAMPLE_RATE)
             save_audio(clean_dir / name, clean, SAMPLE_RATE)
 
-        print(f"{split}: generated {count} examples")
+        print(f"{split}: generated {len(list(noisy_dir.glob('*.wav')))} examples")
 
 if __name__ == "__main__":
     main()
